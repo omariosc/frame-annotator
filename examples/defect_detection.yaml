@@ -1,0 +1,19 @@
+project:
+  name: "Defect Detection"
+  description: "Binary classification for manufacturing quality assurance"
+
+images:
+  pattern: "*.png"
+
+classes:
+  - id: "ok"
+    name: "OK"
+    color: "#28a745"
+    shortcut: "1"
+    description: "No defects found"
+
+  - id: "defect"
+    name: "Defect"
+    color: "#dc3545"
+    shortcut: "2"
+    description: "Defect detected"

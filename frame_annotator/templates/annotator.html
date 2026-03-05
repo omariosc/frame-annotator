@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.project.name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 500px;
+            gap: 20px;
+        }
+
+        .viewer-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .frame-viewer {
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 360px;
+            flex-shrink: 0;
+        }
+
+        .frame-viewer img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .frame-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .timeline-section {
+            margin-top: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .timeline-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .timeline-container {
+            position: relative;
+            height: 80px;
+            background: #e9ecef;
+            border-radius: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            cursor: crosshair;
+        }
+
+        .timeline-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            min-width: 100%;
+        }
+
+        .clip-marker {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            border-left: 2px solid #333;
+            cursor: ew-resize;
+        }
+
+        .clip-marker:hover {
+            border-left-width: 4px;
+            border-color: #007bff;
+        }
+
+        .clip-segment {
+            position: absolute;
+            top: 5px;
+            height: 70px;
+            border-radius: 4px;
+            opacity: 0.7;
+            border: 2px solid transparent;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            user-select: none;
+        }
+
+        .clip-segment:hover {
+            opacity: 0.9;
+            border-color: #333;
+        }
+
+        .clip-segment.selected {
+            opacity: 1;
+            border-color: #000;
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+        }
+
+        .clip-handle {
+            position: absolute;
+            top: 0;
+            width: 10px;
+            height: 100%;
+            cursor: ew-resize;
+            background: rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .clip-handle:hover {
+            background: rgba(0,0,0,0.4);
+        }
+
+        .clip-handle.left {
+            left: 0;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .clip-handle.right {
+            right: 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .clip-safe {
+            background: #28a745;
+        }
+
+        .clip-unsafe {
+            background: #dc3545;
+        }
+
+        .sidebar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .classification-panel {
+            margin-bottom: 30px;
+        }
+
+        .class-options-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .class-option {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .class-option:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .class-option.selected {
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+
+        .class-option.safe {
+            border-color: #28a745;
+        }
+
+        .class-option.safe.selected {
+            background: #d4edda;
+        }
+
+        .class-label {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .class-description {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .unsafe-options {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .unsafe-btn {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            font-size: 13px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .unsafe-btn:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .unsafe-btn.active {
+            border-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .clips-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .clips-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .clips-list::-webkit-scrollbar-track {
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+
+        .clips-list::-webkit-scrollbar-thumb {
+            background: #adb5bd;
+            border-radius: 4px;
+        }
+
+        .clips-list::-webkit-scrollbar-thumb:hover {
+            background: #6c757d;
+        }
+
+        .clip-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clip-item:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .clip-item.selected {
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+
+        .clip-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .clip-title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .clip-class-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .badge-safe {
+            background: #28a745;
+        }
+
+        .badge-unsafe {
+            background: #dc3545;
+        }
+
+        .clip-range {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 6px;
+            background: #28a745;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .status-message.show {
+            opacity: 1;
+        }
+
+        .shortcuts-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .shortcuts-panel h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            grid-column: 1 / -1;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-auto-flow: column;
+            grid-template-rows: repeat(8, auto);
+            gap: 4px 10px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+
+        .shortcut-key {
+            font-family: monospace;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #dee2e6;
+            font-weight: 600;
+        }
+
+        .shortcut-description {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="main-content">
+            <div class="viewer-section">
+                <div class="frame-viewer">
+                    <img id="frameImage" src="" alt="Frame">
+                </div>
+
+                <div class="frame-info">
+                    <span><strong>Frame:</strong> <span id="currentFrame">0</span> / <span id="totalFrames">{{ total_frames }}</span></span>
+                    <span><strong>Labelled:</strong> <span id="labelledFrames">0</span> / {{ total_frames }}</span>
+                    <span><strong>Current Clip:</strong> <span id="currentClip">None</span></span>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-secondary" onclick="previousFrame()">&#9664; Previous (&larr;)</button>
+                    <button class="btn-primary" id="playPauseBtn" onclick="playPause()">&#9654; Play (Space)</button>
+                    <button class="btn-secondary" onclick="nextFrame()">Next (&rarr;) &#9654;</button>
+                    <input type="range" id="frameSlider" min="0" max="{{ total_frames - 1 }}" value="0" style="flex: 1; margin: 0 10px;">
+                </div>
+
+                <div class="timeline-section">
+                    <div class="timeline-header">
+                        <h3>Timeline</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="display: flex; gap: 5px;">
+                                <button class="btn-secondary" onclick="zoomOut()" title="Zoom Out">Zoom Out (&minus;)</button>
+                                <button class="btn-secondary" onclick="zoomIn()" title="Zoom In">Zoom In (+)</button>
+                                <button class="btn-secondary" onclick="resetZoom()" title="Reset Zoom">Reset (R)</button>
+                            </div>
+                            <button class="btn-primary" onclick="addClipBoundary()">+ Add Marker (M)</button>
+                            <button class="btn-danger" onclick="deleteSelectedClip()">Delete Clip (Backspace)</button>
+                        </div>
+                    </div>
+                    <div class="timeline-container" id="timeline" onclick="seekToPosition(event)">
+                        <div class="timeline-bar" id="timelineBar"></div>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Click timeline to seek &bull; Click + Add Marker to create clip boundaries &bull; Drag markers to adjust &bull; Scroll to pan when zoomed
+                    </p>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <h2>Classification</h2>
+
+                <div class="classification-panel">
+                    <div class="class-options-row" id="classOptions"></div>
+                    <div id="subcategoryContainer"></div>
+                </div>
+
+                <h2>Clips</h2>
+                <div class="clips-list" id="clipsList"></div>
+
+                <div class="action-buttons">
+                    <button class="btn-secondary" onclick="loadAnnotations()">Load (L)</button>
+                    <button class="btn-success" onclick="saveAnnotations()">Save (S)</button>
+                </div>
+
+                <div class="shortcuts-panel">
+                    <h3>Keyboard Shortcuts</h3>
+                    <div class="shortcuts-grid" id="shortcutsGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-message" id="statusMessage">Saved successfully!</div>
+
+    <script>
+        const CONFIG = {{ config | tojson }};
+        let frames = [];
+        let currentFrameIndex = 0;
+        let clips = [];
+        let selectedClipIndex = null;
+        let isPlaying = false;
+        let playInterval = null;
+        let zoomLevel = 1; // 1 = no zoom, 2 = 2x zoom, etc.
+        let minZoom = 1;
+        let maxZoom = 10;
+
+        // Build classMap from CONFIG
+        const classMap = {};
+        function buildClassMap(classes) {
+            classes.forEach(cls => {
+                classMap[cls.id] = cls;
+                if (cls.subcategories) {
+                    cls.subcategories.forEach(sub => {
+                        classMap[cls.id + sub.id] = sub;
+                    });
+                }
+            });
+        }
+        buildClassMap(CONFIG.classes);
+
+        function getClassColor(classValue) {
+            // Direct match
+            if (classMap[classValue] && classMap[classValue].color) {
+                return classMap[classValue].color;
+            }
+            // For subcategory combinations like "1ab", find the parent class
+            for (const cls of CONFIG.classes) {
+                if (classValue.startsWith(cls.id) && classValue !== cls.id) {
+                    return cls.color;
+                }
+            }
+            // Fallback
+            return '#6c757d';
+        }
+
+        function renderClassOptions() {
+            const container = document.getElementById('classOptions');
+            container.innerHTML = '';
+            // Adjust grid columns based on number of classes
+            container.style.gridTemplateColumns = `repeat(${CONFIG.classes.length}, 1fr)`;
+
+            CONFIG.classes.forEach(cls => {
+                const div = document.createElement('div');
+                div.className = 'class-option';
+                div.setAttribute('data-class', cls.id);
+                div.style.borderColor = cls.color;
+                div.onclick = () => {
+                    if (cls.subcategories && cls.subcategories.length > 0) {
+                        // For classes with subcategories, just show them
+                        renderSubcategories(cls.id);
+                    } else {
+                        selectClass(cls.id);
+                    }
+                };
+
+                const shortcutHint = cls.shortcut ? ` (Press ${cls.shortcut})` : '';
+                div.innerHTML = `
+                    <div class="class-label">${cls.id} - ${cls.name}</div>
+                    <div class="class-description">${cls.description || ''}${shortcutHint}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderSubcategories(parentId) {
+            const container = document.getElementById('subcategoryContainer');
+            const parentClass = CONFIG.classes.find(c => c.id === parentId);
+            if (!parentClass || !parentClass.subcategories || parentClass.subcategories.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'unsafe-options';
+            grid.id = 'unsafeOptions';
+            grid.style.gridTemplateColumns = `repeat(${parentClass.subcategories.length}, 1fr)`;
+
+            parentClass.subcategories.forEach(sub => {
+                const btn = document.createElement('button');
+                btn.className = 'unsafe-btn';
+                btn.setAttribute('data-parent', parentId);
+                btn.setAttribute('data-value', sub.id);
+                btn.onclick = () => toggleSubcategory(parentId, sub.id);
+
+                const shortcutHint = sub.shortcut ? ` (${sub.shortcut.toUpperCase()})` : '';
+                btn.innerHTML = `${sub.id.toUpperCase()}<br>${sub.name}${shortcutHint}`;
+                grid.appendChild(btn);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(grid);
+        }
+
+        function selectClass(classId) {
+            if (selectedClipIndex === null) {
+                alert('Please select a clip first');
+                return;
+            }
+
+            // Check if this class has subcategories
+            const classDef = CONFIG.classes.find(c => c.id === classId);
+            if (classDef && classDef.subcategories && classDef.subcategories.length > 0) {
+                // Show subcategories but don't assign yet
+                renderSubcategories(classId);
+                return;
+            }
+
+            clips[selectedClipIndex].class = classId;
+
+            // Clear any subcategory buttons
+            document.querySelectorAll('.unsafe-btn').forEach(btn => btn.classList.remove('active'));
+
+            updateClassSelectionUI(classId);
+            renderTimeline();
+            renderClipsList();
+        }
+
+        function toggleSubcategory(parentId, subId) {
+            if (selectedClipIndex === null) {
+                alert('Please select a clip first');
+                return;
+            }
+
+            const btn = document.querySelector(`.unsafe-btn[data-parent="${parentId}"][data-value="${subId}"]`);
+            if (btn) {
+                btn.classList.toggle('active');
+            }
+
+            // Build composite class value from active buttons
+            const activeButtons = document.querySelectorAll(`.unsafe-btn[data-parent="${parentId}"].active`);
+            if (activeButtons.length === 0) {
+                // No subcategories selected, find the default class (first class without subcategories, or keep parent)
+                const defaultClass = CONFIG.classes.find(c => !c.subcategories || c.subcategories.length === 0);
+                clips[selectedClipIndex].class = defaultClass ? defaultClass.id : parentId;
+            } else {
+                const subcategories = Array.from(activeButtons).map(b => b.dataset.value).sort().join('');
+                clips[selectedClipIndex].class = parentId + subcategories;
+            }
+
+            updateClassSelectionUI(clips[selectedClipIndex].class);
+            renderTimeline();
+            renderClipsList();
+        }
+
+        function updateClassSelectionUI(classValue) {
+            document.querySelectorAll('.class-option').forEach(opt => opt.classList.remove('selected'));
+
+            if (classValue) {
+                // Find which top-level class this belongs to
+                let matchedClass = null;
+                for (const cls of CONFIG.classes) {
+                    if (classValue === cls.id || (cls.subcategories && classValue.startsWith(cls.id) && classValue !== cls.id)) {
+                        matchedClass = cls;
+                        break;
+                    }
+                }
+
+                if (matchedClass) {
+                    const opt = document.querySelector(`.class-option[data-class="${matchedClass.id}"]`);
+                    if (opt) opt.classList.add('selected');
+
+                    // If it has subcategories, show them and mark active ones
+                    if (matchedClass.subcategories && matchedClass.subcategories.length > 0) {
+                        renderSubcategories(matchedClass.id);
+                        const subValues = classValue.substring(matchedClass.id.length);
+                        document.querySelectorAll(`.unsafe-btn[data-parent="${matchedClass.id}"]`).forEach(btn => {
+                            if (subValues.includes(btn.dataset.value)) {
+                                btn.classList.add('active');
+                            } else {
+                                btn.classList.remove('active');
+                            }
+                        });
+                    } else {
+                        // No subcategories for this class, clear subcategory container
+                        document.getElementById('subcategoryContainer').innerHTML = '';
+                    }
+                }
+            } else {
+                // No clip selected - clear subcategory buttons
+                document.querySelectorAll('.unsafe-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }
+        }
+
+        function renderShortcuts() {
+            const grid = document.getElementById('shortcutsGrid');
+            grid.innerHTML = '';
+
+            // Fixed shortcuts
+            const shortcuts = [
+                { key: '\u2190/\u2192', desc: 'Previous/Next Frame' },
+                { key: 'Space', desc: 'Play/Pause' },
+                { key: 'M', desc: 'Add Marker' },
+                { key: 'Backspace', desc: 'Delete Selected Clip' },
+                { key: '[/]', desc: 'Previous/Next Clip' },
+                { key: 'H/K', desc: 'Jump to Clip Start/End' },
+                { key: 'J', desc: 'Jump to First Unmarked' },
+            ];
+
+            // Dynamic class shortcuts from config
+            CONFIG.classes.forEach(cls => {
+                if (cls.shortcut) {
+                    shortcuts.push({ key: cls.shortcut.toUpperCase(), desc: cls.name });
+                }
+                if (cls.subcategories) {
+                    cls.subcategories.forEach(sub => {
+                        if (sub.shortcut) {
+                            shortcuts.push({ key: sub.shortcut.toUpperCase(), desc: 'Toggle ' + sub.name });
+                        }
+                    });
+                }
+            });
+
+            // More fixed shortcuts
+            shortcuts.push(
+                { key: '+/\u2212', desc: 'Zoom In/Out' },
+                { key: 'R', desc: 'Reset Zoom' },
+                { key: 'S', desc: 'Save Annotations' },
+                { key: 'L', desc: 'Load Annotations' }
+            );
+
+            // Update grid rows based on shortcut count
+            const rows = Math.ceil(shortcuts.length / 2);
+            grid.style.gridTemplateRows = 'repeat(' + rows + ', auto)';
+
+            shortcuts.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'shortcut-item';
+                item.innerHTML = '<span class="shortcut-key">' + s.key + '</span>' +
+                    '<span class="shortcut-description">' + s.desc + '</span>';
+                grid.appendChild(item);
+            });
+        }
+
+        // Load frames on page load
+        fetch('/api/frames')
+            .then(res => res.json())
+            .then(data => {
+                frames = data.frames;
+                loadFrame(0);
+                loadAnnotations();
+                renderClassOptions();
+                renderShortcuts();
+            });
+
+        function loadFrame(index) {
+            if (index < 0 || index >= frames.length) return;
+            currentFrameIndex = index;
+            document.getElementById('frameImage').src = '/images/' + frames[index];
+            document.getElementById('currentFrame').textContent = index;
+            document.getElementById('frameSlider').value = index;
+            updateCurrentClipDisplay();
+        }
+
+        function nextFrame() {
+            loadFrame(currentFrameIndex + 1);
+        }
+
+        function previousFrame() {
+            loadFrame(currentFrameIndex - 1);
+        }
+
+        function playPause() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playPauseBtn');
+            if (isPlaying) {
+                btn.textContent = '\u23F8 Pause (Space)';
+                playInterval = setInterval(() => {
+                    if (currentFrameIndex >= frames.length - 1) {
+                        playPause();
+                    } else {
+                        nextFrame();
+                    }
+                }, 100);
+            } else {
+                btn.textContent = '\u25B6 Play (Space)';
+                clearInterval(playInterval);
+            }
+        }
+
+        document.getElementById('frameSlider').addEventListener('input', (e) => {
+            loadFrame(parseInt(e.target.value));
+        });
+
+        function addClipBoundary() {
+            // If a clip is selected, start new clip right after it
+            let start = currentFrameIndex;
+            if (selectedClipIndex !== null) {
+                start = clips[selectedClipIndex].end + 1;
+                // Check if we're at the end of the video
+                if (start >= frames.length) {
+                    alert('Cannot create clip - already at end of video.');
+                    return;
+                }
+            }
+
+            // Check if starting frame is already in a clip
+            const existingClip = clips.find(clip =>
+                start >= clip.start && start <= clip.end
+            );
+
+            if (existingClip) {
+                alert('Cannot create clip at this position - frame is already in a clip.');
+                return;
+            }
+
+            // Find next available space
+            let end = Math.min(start + 50, frames.length - 1);
+
+            // Check for overlaps and adjust
+            const sortedClips = [...clips].sort((a, b) => a.start - b.start);
+            for (const clip of sortedClips) {
+                if (start <= clip.end && end >= clip.start) {
+                    // There's an overlap, adjust end
+                    if (start < clip.start) {
+                        end = clip.start - 1;
+                    } else {
+                        // Start is within another clip, can't create
+                        alert('Cannot create clip at this position - would overlap with existing clip.');
+                        return;
+                    }
+                }
+            }
+
+            // Ensure valid clip size
+            if (end <= start) {
+                alert('Not enough space to create a clip at this position.');
+                return;
+            }
+
+            // Use the first class id as default
+            const defaultClassId = CONFIG.classes.length > 0 ? CONFIG.classes[0].id : '0';
+
+            const newClip = {
+                start: start,
+                end: end,
+                class: defaultClassId
+            };
+            clips.push(newClip);
+            clips.sort((a, b) => a.start - b.start);
+
+            // Automatically select the newly created clip
+            selectedClipIndex = clips.findIndex(clip => clip.start === start && clip.end === end);
+            updateClassSelectionUI(clips[selectedClipIndex].class);
+
+            renderTimeline();
+            renderClipsList();
+            updateLabelledFramesCount();
+        }
+
+        let dragState = null;
+
+        function renderTimeline() {
+            const timeline = document.getElementById('timelineBar');
+            timeline.innerHTML = '';
+
+            // Apply zoom by changing timeline width
+            timeline.style.width = (zoomLevel * 100) + '%';
+
+            clips.forEach((clip, index) => {
+                const startPercent = (clip.start / frames.length) * 100;
+                const widthPercent = ((clip.end - clip.start + 1) / frames.length) * 100;
+
+                const segment = document.createElement('div');
+                segment.className = 'clip-segment ' + (index === selectedClipIndex ? 'selected' : '');
+                segment.style.left = startPercent + '%';
+                segment.style.width = widthPercent + '%';
+                segment.style.background = getClassColor(clip.class);
+                segment.setAttribute('data-clip-index', index);
+
+                // Left handle
+                const leftHandle = document.createElement('div');
+                leftHandle.className = 'clip-handle left';
+                leftHandle.onmousedown = (e) => startDrag(e, index, 'left');
+                segment.appendChild(leftHandle);
+
+                // Label
+                const label = document.createElement('span');
+                label.textContent = 'Clip ' + index + ': ' + clip.class;
+                label.style.pointerEvents = 'none';
+                segment.appendChild(label);
+
+                // Right handle
+                const rightHandle = document.createElement('div');
+                rightHandle.className = 'clip-handle right';
+                rightHandle.onmousedown = (e) => startDrag(e, index, 'right');
+                segment.appendChild(rightHandle);
+
+                // Whole segment drag
+                segment.onmousedown = (e) => {
+                    if (e.target === segment || e.target.tagName === 'SPAN') {
+                        startDrag(e, index, 'move');
+                    }
+                };
+
+                segment.onclick = (e) => {
+                    e.stopPropagation();
+                    selectClip(index);
+                };
+
+                timeline.appendChild(segment);
+            });
+        }
+
+        function startDrag(e, clipIndex, mode) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const timeline = document.getElementById('timeline');
+            const rect = timeline.getBoundingClientRect();
+
+            dragState = {
+                clipIndex: clipIndex,
+                mode: mode,
+                startX: e.clientX,
+                startClipStart: clips[clipIndex].start,
+                startClipEnd: clips[clipIndex].end,
+                timelineRect: rect
+            };
+
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+
+        function handleDrag(e) {
+            if (!dragState) return;
+
+            const deltaX = e.clientX - dragState.startX;
+            const deltaFrames = Math.round((deltaX / dragState.timelineRect.width) * frames.length / zoomLevel);
+
+            const clip = clips[dragState.clipIndex];
+            const clipIndex = dragState.clipIndex;
+
+            // Find adjacent clips for overlap prevention
+            const prevClip = clipIndex > 0 ? clips[clipIndex - 1] : null;
+            const nextClip = clipIndex < clips.length - 1 ? clips[clipIndex + 1] : null;
+
+            if (dragState.mode === 'left') {
+                // Dragging left handle - adjust start
+                let newStart = dragState.startClipStart + deltaFrames;
+
+                // Constrain to not overlap with previous clip
+                if (prevClip) {
+                    newStart = Math.max(prevClip.end + 1, newStart);
+                }
+
+                // Constrain to valid range
+                newStart = Math.max(0, Math.min(clip.end - 1, newStart));
+                clip.start = newStart;
+
+                // Update frame to show left boundary
+                loadFrame(clip.start);
+
+            } else if (dragState.mode === 'right') {
+                // Dragging right handle - adjust end
+                let newEnd = dragState.startClipEnd + deltaFrames;
+
+                // Constrain to not overlap with next clip
+                if (nextClip) {
+                    newEnd = Math.min(nextClip.start - 1, newEnd);
+                }
+
+                // Constrain to valid range
+                newEnd = Math.min(frames.length - 1, Math.max(clip.start + 1, newEnd));
+                clip.end = newEnd;
+
+                // Update frame to show right boundary
+                loadFrame(clip.end);
+
+            } else if (dragState.mode === 'move') {
+                // Moving entire clip
+                const clipLength = dragState.startClipEnd - dragState.startClipStart;
+                let newStart = dragState.startClipStart + deltaFrames;
+                let newEnd = dragState.startClipEnd + deltaFrames;
+
+                // Constrain to timeline bounds
+                if (newStart < 0) {
+                    newStart = 0;
+                    newEnd = clipLength;
+                }
+                if (newEnd >= frames.length) {
+                    newEnd = frames.length - 1;
+                    newStart = newEnd - clipLength;
+                }
+
+                // Constrain to not overlap with previous clip
+                if (prevClip && newStart <= prevClip.end) {
+                    newStart = prevClip.end + 1;
+                    newEnd = newStart + clipLength;
+                }
+
+                // Constrain to not overlap with next clip
+                if (nextClip && newEnd >= nextClip.start) {
+                    newEnd = nextClip.start - 1;
+                    newStart = newEnd - clipLength;
+                }
+
+                clip.start = newStart;
+                clip.end = newEnd;
+
+                // Update frame to show start of moved clip
+                loadFrame(clip.start);
+            }
+
+            renderTimeline();
+            renderClipsList();
+            updateLabelledFramesCount();
+        }
+
+        function stopDrag() {
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            dragState = null;
+        }
+
+        function renderClipsList() {
+            const list = document.getElementById('clipsList');
+            list.innerHTML = '';
+
+            if (clips.length === 0) {
+                list.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No clips yet. Add markers to create clips.</p>';
+                return;
+            }
+
+            clips.forEach((clip, index) => {
+                const div = document.createElement('div');
+                div.className = 'clip-item ' + (index === selectedClipIndex ? 'selected' : '');
+                div.onclick = () => selectClip(index);
+
+                const badgeColor = getClassColor(clip.class);
+                div.innerHTML = '<div class="clip-item-header">' +
+                    '<span class="clip-title">Clip ' + index + '</span>' +
+                    '<span class="clip-class-badge" style="background: ' + badgeColor + '">' + clip.class + '</span>' +
+                    '</div>' +
+                    '<div class="clip-range">Frames ' + clip.start + ' - ' + clip.end + ' (' + (clip.end - clip.start + 1) + ' frames)</div>';
+                list.appendChild(div);
+            });
+        }
+
+        function selectClip(index) {
+            selectedClipIndex = index;
+            const clip = clips[index];
+            loadFrame(clip.start);
+            updateClassSelectionUI(clip.class);
+            renderTimeline();
+            renderClipsList();
+        }
+
+        function deleteSelectedClip() {
+            if (selectedClipIndex === null) {
+                alert('Please select a clip first');
+                return;
+            }
+            if (confirm('Delete this clip?')) {
+                clips.splice(selectedClipIndex, 1);
+                selectedClipIndex = null;
+                updateClassSelectionUI(null); // Clear selection UI
+                renderTimeline();
+                renderClipsList();
+                updateLabelledFramesCount();
+            }
+        }
+
+        function updateLabelledFramesCount() {
+            // Calculate total labelled frames
+            const labelledSet = new Set();
+            clips.forEach(clip => {
+                for (let i = clip.start; i <= clip.end; i++) {
+                    labelledSet.add(i);
+                }
+            });
+            document.getElementById('labelledFrames').textContent = labelledSet.size;
+        }
+
+        function jumpToFirstUnmarked() {
+            // Create a set of all labelled frames
+            const labelledSet = new Set();
+            clips.forEach(clip => {
+                for (let i = clip.start; i <= clip.end; i++) {
+                    labelledSet.add(i);
+                }
+            });
+
+            // Find first unmarked frame
+            for (let i = 0; i < frames.length; i++) {
+                if (!labelledSet.has(i)) {
+                    loadFrame(i);
+                    return;
+                }
+            }
+
+            // All frames are marked
+            showStatus('All frames are labelled!');
+        }
+
+        function seekToPosition(event) {
+            const timeline = document.getElementById('timeline');
+            const timelineBar = document.getElementById('timelineBar');
+            const timelineRect = timeline.getBoundingClientRect();
+            const timelineBarRect = timelineBar.getBoundingClientRect();
+
+            // Calculate position accounting for zoom and scroll
+            const x = event.clientX - timelineBarRect.left;
+            const percent = x / timelineBarRect.width;
+            const frameIndex = Math.floor(percent * frames.length);
+
+            if (frameIndex >= 0 && frameIndex < frames.length) {
+                loadFrame(frameIndex);
+            }
+        }
+
+        function updateCurrentClipDisplay() {
+            const clipIndex = clips.findIndex(clip => currentFrameIndex >= clip.start && currentFrameIndex <= clip.end);
+            if (clipIndex >= 0) {
+                document.getElementById('currentClip').textContent = 'Clip ' + clipIndex + ' (' + clips[clipIndex].class + ')';
+            } else {
+                document.getElementById('currentClip').textContent = 'None';
+            }
+        }
+
+        function saveAnnotations() {
+            const data = { clips: clips };
+            fetch('/api/save_annotations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(data => {
+                showStatus('Saved successfully!');
+            })
+            .catch(err => {
+                showStatus('Error saving!', true);
+            });
+        }
+
+        function loadAnnotations() {
+            fetch('/api/load_annotations')
+                .then(res => res.json())
+                .then(data => {
+                    clips = data.clips || [];
+                    selectedClipIndex = null;
+                    renderTimeline();
+                    renderClipsList();
+                    updateLabelledFramesCount();
+                    showStatus('Loaded successfully!');
+                });
+        }
+
+        function showStatus(message, isError = false) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.style.background = isError ? '#dc3545' : '#28a745';
+            statusEl.classList.add('show');
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 2000);
+        }
+
+        // Zoom functions
+        function zoomIn() {
+            if (zoomLevel < maxZoom) {
+                zoomLevel = Math.min(maxZoom, zoomLevel * 1.5);
+                renderTimeline();
+            }
+        }
+
+        function zoomOut() {
+            if (zoomLevel > minZoom) {
+                zoomLevel = Math.max(minZoom, zoomLevel / 1.5);
+                renderTimeline();
+            }
+        }
+
+        function resetZoom() {
+            zoomLevel = 1;
+            renderTimeline();
+        }
+
+        // Helper functions for clip navigation
+        function selectPreviousClip() {
+            if (clips.length === 0) return;
+            if (selectedClipIndex === null || selectedClipIndex === 0) {
+                selectClip(clips.length - 1);
+            } else {
+                selectClip(selectedClipIndex - 1);
+            }
+        }
+
+        function selectNextClip() {
+            if (clips.length === 0) return;
+            if (selectedClipIndex === null || selectedClipIndex === clips.length - 1) {
+                selectClip(0);
+            } else {
+                selectClip(selectedClipIndex + 1);
+            }
+        }
+
+        function jumpToClipStart() {
+            if (selectedClipIndex !== null) {
+                loadFrame(clips[selectedClipIndex].start);
+            }
+        }
+
+        function jumpToClipEnd() {
+            if (selectedClipIndex !== null) {
+                loadFrame(clips[selectedClipIndex].end);
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when typing in input fields
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            // Disable all custom shortcuts if any modifier key is held
+            // This allows browser/OS defaults to work (Ctrl+C, Cmd+V, Alt+F4, etc.)
+            if (e.ctrlKey || e.altKey || e.metaKey) {
+                return; // Let browser/OS handle it
+            }
+
+            // Navigation
+            if (e.key === 'ArrowLeft') { e.preventDefault(); previousFrame(); }
+            if (e.key === 'ArrowRight') { e.preventDefault(); nextFrame(); }
+            if (e.key === ' ') { e.preventDefault(); playPause(); }
+
+            // Clip management
+            if (e.key.toLowerCase() === 'm') { e.preventDefault(); addClipBoundary(); }
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                if (selectedClipIndex !== null) deleteSelectedClip();
+            }
+            if (e.key === '[') { e.preventDefault(); selectPreviousClip(); }
+            if (e.key === ']') { e.preventDefault(); selectNextClip(); }
+            if (e.key.toLowerCase() === 'h') { e.preventDefault(); jumpToClipStart(); }
+            if (e.key.toLowerCase() === 'k') { e.preventDefault(); jumpToClipEnd(); }
+            if (e.key.toLowerCase() === 'j') { e.preventDefault(); jumpToFirstUnmarked(); }
+
+            // Dynamic classification shortcuts from CONFIG
+            for (const cls of CONFIG.classes) {
+                if (cls.shortcut && e.key.toLowerCase() === cls.shortcut.toLowerCase()) {
+                    e.preventDefault();
+                    selectClass(cls.id);
+                    return;
+                }
+                if (cls.subcategories) {
+                    for (const sub of cls.subcategories) {
+                        if (sub.shortcut && e.key.toLowerCase() === sub.shortcut.toLowerCase()) {
+                            e.preventDefault();
+                            renderSubcategories(cls.id);
+                            toggleSubcategory(cls.id, sub.id);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // Zoom
+            if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); }
+            if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomOut(); }
+            if (e.key.toLowerCase() === 'r') { e.preventDefault(); resetZoom(); }
+
+            // Save/Load
+            if (e.key.toLowerCase() === 's') { e.preventDefault(); saveAnnotations(); }
+            if (e.key.toLowerCase() === 'l') { e.preventDefault(); loadAnnotations(); }
+        });
+    </script>
+</body>
+</html>

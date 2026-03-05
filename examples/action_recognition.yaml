@@ -1,0 +1,31 @@
+project:
+  name: "Action Recognition"
+  description: "Label video frames with activity classes"
+
+images:
+  pattern: "*.jpg"
+
+classes:
+  - id: "idle"
+    name: "Idle"
+    color: "#6c757d"
+    shortcut: "1"
+    description: "No activity"
+
+  - id: "walking"
+    name: "Walking"
+    color: "#007bff"
+    shortcut: "2"
+    description: "Subject walking"
+
+  - id: "running"
+    name: "Running"
+    color: "#28a745"
+    shortcut: "3"
+    description: "Subject running"
+
+  - id: "jumping"
+    name: "Jumping"
+    color: "#dc3545"
+    shortcut: "4"
+    description: "Subject jumping"

@@ -1,0 +1,28 @@
+project:
+  name: "Surgical Safety Annotation"
+  description: "Annotate safety classes in surgical video frames"
+
+images:
+  pattern: "*_color.png"
+
+classes:
+  - id: "0"
+    name: "Safe"
+    color: "#28a745"
+    shortcut: "0"
+    description: "No safety concerns"
+
+  - id: "1"
+    name: "Unsafe"
+    color: "#dc3545"
+    description: "Safety concerns present"
+    subcategories:
+      - id: "a"
+        name: "Improper Posture"
+        shortcut: "a"
+      - id: "b"
+        name: "Hyperextension"
+        shortcut: "b"
+      - id: "c"
+        name: "Controller Collision"
+        shortcut: "c"
