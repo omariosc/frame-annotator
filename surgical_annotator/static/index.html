@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surgical Image Annotation Tool</title>
+    <link rel="stylesheet" href="/static/css/styles.css?v=5">
+</head>
+<body>
+    <div id="loading-bar" class="loading-bar hidden">
+        <div class="loading-bar-fill"></div>
+        <span class="loading-bar-text"></span>
+    </div>
+    <div class="app-container">
+        <!-- Left Sidebar: Dataset, Navigation, Options -->
+        <aside class="sidebar sidebar-left">
+            <div class="sidebar-header">
+                <h1>Annotation Tool</h1>
+            </div>
+
+            <!-- Dataset/Trial Selection with Progress -->
+            <div class="panel">
+                <h3>Dataset & Trial</h3>
+                <select id="dataset-select">
+                    <option value="">Select Dataset...</option>
+                </select>
+                <select id="trial-select" disabled>
+                    <option value="">Select Trial...</option>
+                </select>
+                <div class="trial-nav-buttons">
+                    <button id="prev-trial-btn" disabled>&larr; Prev Trial</button>
+                    <button id="next-trial-btn" disabled>Next Trial &rarr;</button>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="panel" id="progress-panel" style="display: none;">
+                <h3>Progress</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">0 / 0</div>
+                <div class="progress-details">
+                    <span id="completed-count">0 completed</span>
+                    <span id="skipped-count">0 skipped</span>
+                    <span id="excluded-count">0 excluded</span>
+                    <span id="negative-count">0 out</span>
+                </div>
+            </div>
+
+            <!-- Frame Navigation -->
+            <div class="panel" id="navigation-panel" style="display: none;">
+                <h3>Navigation</h3>
+                <div class="frame-info">
+                    Frame <span id="current-frame-num">0</span>
+                    (<span id="frame-idx">0</span> / <span id="total-frames">0</span>)
+                </div>
+
+                <!-- Frame Jump Dropdown -->
+                <div class="frame-jump">
+                    <select id="frame-jump-select">
+                        <option value="">Jump to frame...</option>
+                    </select>
+                </div>
+
+                <div class="nav-buttons">
+                    <button id="prev-btn" disabled><span class="key-hint">&larr;</span> Previous</button>
+                    <button id="next-btn" disabled>Next <span class="key-hint">&rarr;</span></button>
+                </div>
+                <div class="skip-buttons">
+                    <button id="skip-btn" class="skip-btn"><span class="key-hint">S</span> Skip Frame</button>
+                    <button id="unskip-btn" class="unskip-btn" style="display: none;"><span class="key-hint">S</span> Unskip Frame</button>
+                    <button id="reload-btn" class="reload-btn" title="Reload frame and annotations"><span class="key-hint">F5</span> Reload Frame</button>
+                </div>
+
+                <!-- Frame Sample Rate Selector -->
+                <div class="frame-rate-select">
+                    <label for="frame-rate-select">Sample rate:</label>
+                    <select id="frame-rate-select">
+                        <option value="25">Every 25</option>
+                        <option value="50">Every 50</option>
+                        <option value="100" selected>Every 100</option>
+                        <option value="all">All frames</option>
+                    </select>
+                </div>
+
+                <!-- Mode Buttons -->
+                <div style="display: flex; gap: 6px; margin-top: 10px;">
+                    <button id="batch-mode-btn" class="batch-mode-btn" style="flex:1;">
+                        <span class="key-hint">B</span> Batch
+                    </button>
+                    <button id="video-mode-btn" class="batch-mode-btn" style="flex:1;">
+                        <span class="key-hint">V</span> Video
+                    </button>
+                </div>
+            </div>
+
+            <!-- Annotation Status Checklist -->
+            <div class="panel" id="status-panel" style="display: none;">
+                <h3>Annotation Status</h3>
+                <div class="status-list">
+                    <div class="status-item clickable" data-check="tool1_mask" data-tool="tool1_mask">
+                        <span class="status-icon">&#9744;</span> T1 Mask
+                    </div>
+                    <div class="status-item clickable" data-check="tool1_lines" data-tool="tool1_top">
+                        <span class="status-icon">&#9744;</span> T1 Lines
+                    </div>
+                    <div class="status-item clickable" data-check="tool1_joint" data-tool="tool1_joint">
+                        <span class="status-icon">&#9744;</span> T1 Joint
+                    </div>
+                    <div class="status-item clickable" data-check="tool1_ee_tip" data-tool="tool1_ee_tip">
+                        <span class="status-icon">&#9744;</span> T1 EE Tip
+                    </div>
+                    <div class="status-item clickable" data-check="tool1_ee_left" data-tool="tool1_ee_left">
+                        <span class="status-icon">&#9744;</span> T1 EE L
+                    </div>
+                    <div class="status-item clickable" data-check="tool1_ee_right" data-tool="tool1_ee_right">
+                        <span class="status-icon">&#9744;</span> T1 EE R
+                    </div>
+                    <div class="status-item clickable" data-check="tool2_mask" data-tool="tool2_mask">
+                        <span class="status-icon">&#9744;</span> T2 Mask
+                    </div>
+                    <div class="status-item clickable" data-check="tool2_lines" data-tool="tool2_top">
+                        <span class="status-icon">&#9744;</span> T2 Lines
+                    </div>
+                    <div class="status-item clickable" data-check="tool2_joint" data-tool="tool2_joint">
+                        <span class="status-icon">&#9744;</span> T2 Joint
+                    </div>
+                    <div class="status-item clickable" data-check="tool2_ee_tip" data-tool="tool2_ee_tip">
+                        <span class="status-icon">&#9744;</span> T2 EE Tip
+                    </div>
+                    <div class="status-item clickable" data-check="tool2_ee_left" data-tool="tool2_ee_left">
+                        <span class="status-icon">&#9744;</span> T2 EE L
+                    </div>
+                    <div class="status-item clickable" data-check="tool2_ee_right" data-tool="tool2_ee_right">
+                        <span class="status-icon">&#9744;</span> T2 EE R
+                    </div>
+                </div>
+                <div class="status-list peg-status-list" style="display: none;">
+                    <div class="status-item" data-check="p1_mask"><span class="status-icon">&#9744;</span> P1 Mask</div>
+                    <div class="status-item" data-check="p1_kps"><span class="status-icon">&#9744;</span> P1 KPs</div>
+                    <div class="status-item" data-check="p2_mask"><span class="status-icon">&#9744;</span> P2 Mask</div>
+                    <div class="status-item" data-check="p2_kps"><span class="status-icon">&#9744;</span> P2 KPs</div>
+                    <div class="status-item" data-check="p3_mask"><span class="status-icon">&#9744;</span> P3 Mask</div>
+                    <div class="status-item" data-check="p3_kps"><span class="status-icon">&#9744;</span> P3 KPs</div>
+                    <div class="status-item" data-check="p4_mask"><span class="status-icon">&#9744;</span> P4 Mask</div>
+                    <div class="status-item" data-check="p4_kps"><span class="status-icon">&#9744;</span> P4 KPs</div>
+                    <div class="status-item" data-check="p5_mask"><span class="status-icon">&#9744;</span> P5 Mask</div>
+                    <div class="status-item" data-check="p5_kps"><span class="status-icon">&#9744;</span> P5 KPs</div>
+                    <div class="status-item" data-check="p6_mask"><span class="status-icon">&#9744;</span> P6 Mask</div>
+                    <div class="status-item" data-check="p6_kps"><span class="status-icon">&#9744;</span> P6 KPs</div>
+                    <div class="status-item" data-check="s1"><span class="status-icon">&#9744;</span> S1 Post</div>
+                    <div class="status-item" data-check="s2"><span class="status-icon">&#9744;</span> S2 Post</div>
+                    <div class="status-item" data-check="s3"><span class="status-icon">&#9744;</span> S3 Post</div>
+                    <div class="status-item" data-check="s4"><span class="status-icon">&#9744;</span> S4 Post</div>
+                    <div class="status-item" data-check="s5"><span class="status-icon">&#9744;</span> S5 Post</div>
+                    <div class="status-item" data-check="s6"><span class="status-icon">&#9744;</span> S6 Post</div>
+                    <div class="status-item" data-check="t1"><span class="status-icon">&#9744;</span> T1 Post</div>
+                    <div class="status-item" data-check="t2"><span class="status-icon">&#9744;</span> T2 Post</div>
+                    <div class="status-item" data-check="t3"><span class="status-icon">&#9744;</span> T3 Post</div>
+                    <div class="status-item" data-check="t4"><span class="status-icon">&#9744;</span> T4 Post</div>
+                    <div class="status-item" data-check="t5"><span class="status-icon">&#9744;</span> T5 Post</div>
+                    <div class="status-item" data-check="t6"><span class="status-icon">&#9744;</span> T6 Post</div>
+                    <div class="status-item" data-check="board"><span class="status-icon">&#9744;</span> Board</div>
+                </div>
+            </div>
+
+            <!-- Visualization Options -->
+            <div class="panel" id="options-panel" style="display: none;">
+                <h3>Visualization Options</h3>
+                <div class="option-toggles">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="phase-strip-toggle">
+                        <span>Show phase strip</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Mouse Shortcuts (stays in left sidebar) -->
+            <div class="panel shortcuts-panel">
+                <h3>Mouse</h3>
+                <div class="shortcut-list">
+                    <div><kbd>Scroll</kbd> Zoom in/out</div>
+                    <div><kbd>Right-drag</kbd> Pan view</div>
+                    <div><kbd>Mid-click</kbd> Cancel drawing</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Canvas Area -->
+        <main class="canvas-area">
+            <div class="canvas-container" id="canvas-container">
+                <div class="canvas-wrapper" id="canvas-wrapper">
+                    <canvas id="image-canvas"></canvas>
+                    <canvas id="annotation-canvas"></canvas>
+                </div>
+                <div class="canvas-placeholder" id="canvas-placeholder">
+                    Select a dataset and trial to begin annotation
+                </div>
+            </div>
+
+            <!-- Zoom controls -->
+            <div class="zoom-controls">
+                <button id="zoom-in">+</button>
+                <span id="zoom-level">100%</span>
+                <button id="zoom-out">-</button>
+                <button id="zoom-fit"><span class="key-hint">F</span> Fit</button>
+            </div>
+
+            <!-- Current tool indicator -->
+            <div class="current-tool" id="current-tool-indicator">
+                No tool selected
+            </div>
+
+            <!-- Kinematics info display -->
+            <div class="kinematics-info" id="kinematics-info" style="display: none;">
+                <div id="kinematics-text"></div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions" id="instructions">
+                Select a tool from the sidebar to begin annotating
+            </div>
+
+            <!-- Phase Strip Timeline (always visible when trial loaded) -->
+            <div class="phase-strip" id="phase-strip" style="display: none;">
+                <canvas id="phase-strip-canvas" height="36"></canvas>
+            </div>
+
+            <!-- Phase Controls (compact row below phase strip) -->
+            <div class="phase-controls" id="phase-controls" style="display: none;">
+                <button class="phase-btn" data-phase="idle" style="background:#6b7280;">
+                    <span class="key-hint">Z</span> Idle
+                </button>
+                <button class="phase-btn" data-phase="reach" style="background:#3b82f6;">
+                    <span class="key-hint">X</span> Reach
+                </button>
+                <button class="phase-btn" data-phase="nudge" style="background:#f97316;">
+                    <span class="key-hint">C</span> Nudge
+                </button>
+                <button class="phase-btn" data-phase="grasp" style="background:#f59e0b;color:#000;">
+                    <span class="key-hint">D</span> Grasp
+                </button>
+                <button class="phase-btn" data-phase="transfer" style="background:#8b5cf6;">
+                    <span class="key-hint">R</span> Transfer
+                </button>
+                <button class="phase-btn" data-phase="place" style="background:#10b981;">
+                    <span class="key-hint">T</span> Place
+                </button>
+                <button class="phase-btn" data-phase="dropped" style="background:#ef4444;">
+                    <span class="key-hint">G</span> Dropped
+                </button>
+                <span class="phase-meta">
+                    Cycle: <input type="number" id="phase-cycle" min="0" max="20" value="0" style="width:40px">
+                    Tool: <select id="phase-active-tool" style="width:50px;margin-bottom:0;">
+                        <option value="0">-</option>
+                        <option value="1">T1</option>
+                        <option value="2">T2</option>
+                    </select>
+                </span>
+                <button class="phase-info-btn" id="phase-info-btn" title="Keyboard/mouse mapping guide">?</button>
+            </div>
+        </main>
+
+        <!-- Right Sidebar: Annotation Tools, Status -->
+        <aside class="sidebar sidebar-right">
+            <!-- Mode Switcher -->
+            <div class="mode-switcher" id="mode-switcher" style="display: none;">
+                <button class="mode-btn active" data-mode="tools"><span class="key-hint">M</span> Tools</button>
+                <button class="mode-btn" data-mode="pegs"><span class="key-hint">M</span> Pegs</button>
+            </div>
+
+            <!-- Annotation Tools -->
+            <div class="panel" id="tools-panel" style="display: none;">
+                <h3>Annotation Tools</h3>
+
+                <div class="tools-columns">
+                    <div class="tool-section">
+                        <h4>Tool 1 (Blue)</h4>
+                        <div class="visibility-flags">
+                            <div class="visibility-control">
+                                <span class="vis-label">Mask</span>
+                                <select class="vis-select" id="tool1-vis-mask" data-tool="1" data-part="mask">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">Shaft</span>
+                                <select class="vis-select" id="tool1-vis-lines" data-tool="1" data-part="lines">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">Joint</span>
+                                <select class="vis-select" id="tool1-vis-joint" data-tool="1" data-part="joint">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">EE Tip</span>
+                                <select class="vis-select" id="tool1-vis-ee_tip" data-tool="1" data-part="ee_tip">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">EE L</span>
+                                <select class="vis-select" id="tool1-vis-ee_left" data-tool="1" data-part="ee_left">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">EE R</span>
+                                <select class="vis-select" id="tool1-vis-ee_right" data-tool="1" data-part="ee_right">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="tool-buttons">
+                            <button class="tool-btn" data-tool="tool1_mask" data-key="1">
+                                <span class="key-hint">1</span> Mask
+                                <span class="tool-status" id="status-tool1_mask"></span>
+                            </button>
+                            <button class="tool-btn" data-tool="tool1_top" data-key="2">
+                                <span class="key-hint">2</span> Top Line
+                                <span class="tool-status" id="status-tool1_top"></span>
+                            </button>
+                            <button class="tool-btn" data-tool="tool1_bottom" data-key="3">
+                                <span class="key-hint">3</span> Bot Line
+                                <span class="tool-status" id="status-tool1_bottom"></span>
+                            </button>
+                            <button class="tool-btn" data-tool="tool1_middle">
+                                Mid Line
+                                <span class="tool-status" id="status-tool1_middle"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool1_joint" data-key="7">
+                                <span class="key-hint">7</span> Joint
+                                <span class="tool-status" id="status-tool1_joint"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool1_ee_tip" data-key="8">
+                                <span class="key-hint">8</span> EE Tip
+                                <span class="tool-status" id="status-tool1_ee_tip"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool1_ee_left" data-key="Q">
+                                <span class="key-hint">Q</span> EE L
+                                <span class="tool-status" id="status-tool1_ee_left"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool1_ee_right" data-key="W">
+                                <span class="key-hint">W</span> EE R
+                                <span class="tool-status" id="status-tool1_ee_right"></span>
+                            </button>
+                        </div>
+                        <button class="out-btn" id="mark-tool1-out"><span class="key-hint">⇧1</span> T1 Out</button>
+                    </div>
+
+                    <div class="tool-section tool2-section">
+                        <h4>Tool 2 (Green)</h4>
+                        <div class="visibility-flags">
+                            <div class="visibility-control">
+                                <span class="vis-label">Mask</span>
+                                <select class="vis-select" id="tool2-vis-mask" data-tool="2" data-part="mask">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">Shaft</span>
+                                <select class="vis-select" id="tool2-vis-lines" data-tool="2" data-part="lines">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">Joint</span>
+                                <select class="vis-select" id="tool2-vis-joint" data-tool="2" data-part="joint">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">EE Tip</span>
+                                <select class="vis-select" id="tool2-vis-ee_tip" data-tool="2" data-part="ee_tip">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">EE L</span>
+                                <select class="vis-select" id="tool2-vis-ee_left" data-tool="2" data-part="ee_left">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                            <div class="visibility-control">
+                                <span class="vis-label">EE R</span>
+                                <select class="vis-select" id="tool2-vis-ee_right" data-tool="2" data-part="ee_right">
+                                    <option value="1">Visible</option>
+                                    <option value="0">Occluded</option>
+                                    <option value="-1">Out</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="tool-buttons">
+                            <button class="tool-btn" data-tool="tool2_mask" data-key="4">
+                                <span class="key-hint">4</span> Mask
+                                <span class="tool-status" id="status-tool2_mask"></span>
+                            </button>
+                            <button class="tool-btn" data-tool="tool2_top" data-key="5">
+                                <span class="key-hint">5</span> Top Line
+                                <span class="tool-status" id="status-tool2_top"></span>
+                            </button>
+                            <button class="tool-btn" data-tool="tool2_bottom" data-key="6">
+                                <span class="key-hint">6</span> Bot Line
+                                <span class="tool-status" id="status-tool2_bottom"></span>
+                            </button>
+                            <button class="tool-btn" data-tool="tool2_middle">
+                                Mid Line
+                                <span class="tool-status" id="status-tool2_middle"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool2_joint" data-key="9">
+                                <span class="key-hint">9</span> Joint
+                                <span class="tool-status" id="status-tool2_joint"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool2_ee_tip" data-key="0">
+                                <span class="key-hint">0</span> EE Tip
+                                <span class="tool-status" id="status-tool2_ee_tip"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool2_ee_left" data-key="O">
+                                <span class="key-hint">O</span> EE L
+                                <span class="tool-status" id="status-tool2_ee_left"></span>
+                            </button>
+                            <button class="tool-btn keypoint-btn" data-tool="tool2_ee_right" data-key="I">
+                                <span class="key-hint">I</span> EE R
+                                <span class="tool-status" id="status-tool2_ee_right"></span>
+                            </button>
+                        </div>
+                        <button class="out-btn" id="mark-tool2-out"><span class="key-hint">⇧2</span> T2 Out</button>
+                    </div>
+                </div>
+
+                <div class="mark-out-actions">
+                    <button class="out-btn" id="mark-all-out"><span class="key-hint">⇧A</span> All Out</button>
+                </div>
+
+                <div class="tool-actions">
+                    <button id="clear-tool-btn">Clear Current</button>
+                    <button id="use-prior-btn"><span class="key-hint">P</span> Copy Prior</button>
+                </div>
+                <div class="tool-actions" style="margin-top: 8px;">
+                    <button id="edit-mode-btn" class="tool-btn">
+                        <span class="key-hint">E</span> Edit Vertices
+                    </button>
+                    <button id="clear-all-btn" class="danger-btn"><span class="key-hint">C</span> Clear All</button>
+                </div>
+                <div class="tool-options">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="edge-select-toggle" checked>
+                        <span>Single-edge snap</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="auto-advance-checkbox" checked>
+                        <span>Auto-advance</span>
+                        <kbd>Tab</kbd>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="manual-mask-checkbox">
+                        <span>Manual masks</span>
+                    </label>
+                </div>
+                <div class="save-actions">
+                    <button id="forceSaveBtn" class="save-btn" title="Force save current annotations (Ctrl+S)">
+                        <span class="key-hint">Ctrl+S</span> 💾 Save
+                    </button>
+                    <button id="backupBtn" class="save-btn" title="Backup all annotations for this trial">
+                        📦 Backup
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Segmentation (SAM) Panel -->
+            <div class="panel" id="sam-panel" style="display: none;">
+                <h3>AI Segmentation (SAM)</h3>
+                <div class="sam-actions">
+                    <button id="sam-apply-btn" class="sam-btn">Apply Existing</button>
+                    <button id="sam-new-btn" class="sam-btn-secondary">New SAM</button>
+                </div>
+                <div id="sam-status-text" class="sam-status"></div>
+                <div id="sam-instructions" class="sam-instructions"></div>
+                <div id="sam-selection-info" class="sam-selection-info" style="display: none;">
+                    <span id="sam-selection-count">0 selected</span>
+                    <button id="sam-clear-selection" class="sam-btn-small">Clear</button>
+                </div>
+                <div id="sam-tool-assign" class="sam-tool-assign" style="display: none;">
+                    <span id="sam-assign-label">Assign to:</span>
+                    <button id="sam-assign-tool1" class="sam-assign-btn tool1-assign">Tool 1</button>
+                    <button id="sam-assign-tool2" class="sam-assign-btn tool2-assign">Tool 2</button>
+                </div>
+            </div>
+
+            <!-- Live JSON Viewer Panel -->
+            <div class="panel" id="json-viewer-panel" style="display: none;">
+                <div class="panel-header">
+                    <h3>Frame Annotation</h3>
+                    <button id="copy-json-btn" class="icon-btn" title="Copy to clipboard">Copy</button>
+                </div>
+                <pre id="json-viewer-content" class="json-content">// No annotation loaded</pre>
+            </div>
+
+            <!-- Pegs Annotation Panel (hidden by default, shown in pegs mode) -->
+            <div class="panel" id="pegs-panel" style="display: none;">
+                <h3>Peg Annotations</h3>
+
+                <!-- Peg Selection Grid (2x3) -->
+                <div class="peg-grid" id="peg-grid">
+                    <button class="peg-btn" data-peg="1" style="border-color: #f97316;"><span class="key-hint">1</span> P1</button>
+                    <button class="peg-btn" data-peg="2" style="border-color: #a855f7;"><span class="key-hint">2</span> P2</button>
+                    <button class="peg-btn" data-peg="3" style="border-color: #06b6d4;"><span class="key-hint">3</span> P3</button>
+                    <button class="peg-btn" data-peg="4" style="border-color: #eab308;"><span class="key-hint">4</span> P4</button>
+                    <button class="peg-btn" data-peg="5" style="border-color: #ec4899;"><span class="key-hint">5</span> P5</button>
+                    <button class="peg-btn" data-peg="6" style="border-color: #84cc16;"><span class="key-hint">6</span> P6</button>
+                </div>
+
+                <!-- Selected Peg Details -->
+                <div class="peg-details" id="peg-details" style="display: none;">
+                    <h4 id="peg-detail-title">Peg 1</h4>
+                    <div class="peg-detail-row">
+                        <label>State:</label>
+                        <div class="peg-state-grid" id="peg-state-grid">
+                            <button class="peg-state-btn" data-state="on_source_post">Source</button>
+                            <button class="peg-state-btn" data-state="grasped_by_tool1">Grasp T1</button>
+                            <button class="peg-state-btn" data-state="grasped_by_tool2">Grasp T2</button>
+                            <button class="peg-state-btn" data-state="in_transfer">Transfer</button>
+                            <button class="peg-state-btn" data-state="on_target_post">Target</button>
+                            <button class="peg-state-btn" data-state="dropped">Dropped</button>
+                            <button class="peg-state-btn" data-state="out_of_view">Out</button>
+                            <button class="peg-state-btn" data-state="occluded">Occluded</button>
+                            <button class="peg-state-btn" data-state="missing">Missing</button>
+                        </div>
+                    </div>
+                    <div class="peg-detail-row">
+                        <label>Post:</label>
+                        <div class="peg-post-grid" id="peg-post-grid">
+                            <button class="peg-post-btn" data-post="">None</button>
+                            <button class="peg-post-btn" data-post="S1">S1</button>
+                            <button class="peg-post-btn" data-post="S2">S2</button>
+                            <button class="peg-post-btn" data-post="S3">S3</button>
+                            <button class="peg-post-btn" data-post="S4">S4</button>
+                            <button class="peg-post-btn" data-post="S5">S5</button>
+                            <button class="peg-post-btn" data-post="S6">S6</button>
+                            <button class="peg-post-btn" data-post="T1">T1</button>
+                            <button class="peg-post-btn" data-post="T2">T2</button>
+                            <button class="peg-post-btn" data-post="T3">T3</button>
+                            <button class="peg-post-btn" data-post="T4">T4</button>
+                            <button class="peg-post-btn" data-post="T5">T5</button>
+                            <button class="peg-post-btn" data-post="T6">T6</button>
+                        </div>
+                    </div>
+                    <div class="peg-drawing-tools">
+                        <button id="peg-bbox-btn" class="tool-btn"><span class="key-hint">B</span> BBox</button>
+                        <button id="peg-mask-btn" class="tool-btn"><span class="key-hint">A</span> Mask</button>
+                        <button id="peg-kp1-btn" class="tool-btn peg-kp-btn" data-kp="0"><span class="key-hint">U</span> KP1</button>
+                        <button id="peg-kp2-btn" class="tool-btn peg-kp-btn" data-kp="1"><span class="key-hint">Y</span> KP2</button>
+                        <button id="peg-kp3-btn" class="tool-btn peg-kp-btn" data-kp="2"><span class="key-hint">J</span> KP3</button>
+                        <button id="peg-clear-btn" class="tool-btn"><span class="key-hint">C</span> Clear</button>
+                        <button id="peg-copy-prior-btn" class="tool-btn"><span class="key-hint">P</span> Copy Prior</button>
+                    </div>
+                    <div class="peg-kp-status" id="peg-kp-status"></div>
+                </div>
+
+                <!-- Pegboard Section -->
+                <div class="pegboard-section">
+                    <h3>Post Annotations</h3>
+                    <div class="post-btn-row">
+                        <span class="post-row-label">Src:</span>
+                        <button class="post-btn" data-post-type="source" data-post-idx="0">S1</button>
+                        <button class="post-btn" data-post-type="source" data-post-idx="1">S2</button>
+                        <button class="post-btn" data-post-type="source" data-post-idx="2">S3</button>
+                        <button class="post-btn" data-post-type="source" data-post-idx="3">S4</button>
+                        <button class="post-btn" data-post-type="source" data-post-idx="4">S5</button>
+                        <button class="post-btn" data-post-type="source" data-post-idx="5">S6</button>
+                    </div>
+                    <div class="post-btn-row">
+                        <span class="post-row-label">Tgt:</span>
+                        <button class="post-btn" data-post-type="target" data-post-idx="0">T1</button>
+                        <button class="post-btn" data-post-type="target" data-post-idx="1">T2</button>
+                        <button class="post-btn" data-post-type="target" data-post-idx="2">T3</button>
+                        <button class="post-btn" data-post-type="target" data-post-idx="3">T4</button>
+                        <button class="post-btn" data-post-type="target" data-post-idx="4">T5</button>
+                        <button class="post-btn" data-post-type="target" data-post-idx="5">T6</button>
+                    </div>
+                    <div class="pegboard-tools-separator"></div>
+                    <div class="pegboard-tools">
+                        <button id="pegboard-outline-btn" class="tool-btn"><span class="key-hint">L</span> Board Outline</button>
+                        <button id="pegboard-edit-btn" class="tool-btn"><span class="key-hint">E</span> Edit All</button>
+                        <button id="pegboard-copy-btn" class="tool-btn"><span class="key-hint">K</span> Copy Prior</button>
+                        <button id="pegboard-clear-btn" class="tool-btn pegboard-clear-btn">Clear All</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guide Button -->
+            <div class="guide-btn-container">
+                <button id="guide-btn" class="guide-btn" title="Annotation Guide">?</button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Annotation Guide Modal -->
+    <div id="guide-modal" class="guide-modal" style="display: none;">
+        <div class="guide-modal-content">
+            <div class="guide-modal-header">
+                <h2>Annotation Guide</h2>
+                <button id="guide-close" class="guide-close-btn">&times;</button>
+            </div>
+            <div class="guide-modal-body">
+                <h3>Overview</h3>
+                <p>This tool collects two types of training data:</p>
+                <ol>
+                    <li><strong>Segmentation masks &amp; keypoints</strong> &mdash; train a visual detection model (per-frame, in Tools/Pegs mode)</li>
+                    <li><strong>Phase labels</strong> &mdash; train a temporal phase recognition model (across frames, in Batch mode)</li>
+                </ol>
+
+                <h3>Recommended Workflow</h3>
+                <h4>Step 1: Phase Labels First (Batch Mode)</h4>
+                <p>Phase labelling is fastest done in bulk. For each trial:</p>
+                <ol>
+                    <li>Press <kbd>B</kbd> to open Batch Mode</li>
+                    <li>Scroll through thumbnails to identify phase transitions</li>
+                    <li>Click the first frame of a phase, then Shift+click the last frame to select a range</li>
+                    <li>Press the phase key (<kbd>Z</kbd>=Idle, <kbd>X</kbd>=Reach, <kbd>C</kbd>=Nudge, <kbd>D</kbd>=Grasp, <kbd>R</kbd>=Transfer, <kbd>T</kbd>=Place, <kbd>G</kbd>=Dropped)</li>
+                    <li>Set Cycle number and active Tool (T1/T2) for each range</li>
+                    <li>Continue until all frames are labelled, then close Batch Mode</li>
+                </ol>
+                <p><em>Tip: Do all phase labels for a trial before moving to segmentation. This lets you focus on temporal flow without switching context.</em></p>
+
+                <h4>Step 2: Tool Segmentation (Tools Mode)</h4>
+                <p>For each sampled frame in the trial:</p>
+                <ol>
+                    <li>Select Tool 1, press <kbd>1</kbd> for mask &mdash; draw the segmentation polygon</li>
+                    <li>Press <kbd>2</kbd>/<kbd>3</kbd> for top/bottom shaft lines</li>
+                    <li>Press <kbd>7</kbd> for joint, <kbd>8</kbd> for EE tip, <kbd>Q</kbd>/<kbd>W</kbd> for EE left/right</li>
+                    <li>If auto-advance is on (<kbd>Tab</kbd>), the next tool activates automatically</li>
+                    <li>Repeat for Tool 2 (<kbd>4</kbd>&ndash;<kbd>6</kbd>, <kbd>9</kbd>, <kbd>0</kbd>, <kbd>O</kbd>/<kbd>I</kbd>)</li>
+                    <li>If a tool is out of view, press <kbd>Shift+1</kbd> or <kbd>Shift+2</kbd> to mark it as Out</li>
+                    <li>Use <kbd>P</kbd> to copy annotations from the previous frame, then adjust</li>
+                    <li>Press <kbd>N</kbd> to advance to the next frame</li>
+                </ol>
+
+                <h4>Step 3: Peg &amp; Pegboard Segmentation (Pegs Mode)</h4>
+                <p>Switch to Pegs mode (<kbd>M</kbd>) for peg transfer board annotations:</p>
+                <ol>
+                    <li>Press <kbd>1</kbd>&ndash;<kbd>6</kbd> to select a peg; mask drawing auto-starts</li>
+                    <li>After mask, place 3 keypoints (<kbd>U</kbd>/<kbd>Y</kbd>/<kbd>J</kbd>). The next peg auto-selects</li>
+                    <li>Set peg state (Source/Grasp/Transfer/Target) and which post it's on</li>
+                    <li>Annotate source posts (S1&ndash;S6) and target posts (T1&ndash;T6) with masks + keypoints</li>
+                    <li>Draw the board outline (<kbd>L</kbd>)</li>
+                    <li>Use <kbd>K</kbd> to copy all peg/pegboard data from the most recent annotated frame</li>
+                </ol>
+
+                <h3>Efficiency Tips</h3>
+                <ul>
+                    <li><strong>Copy Prior is your best friend</strong> &mdash; annotations change slowly between sampled frames. Copy prior, then nudge vertices in Edit mode</li>
+                    <li><strong>SAM assists masks</strong> &mdash; use "New SAM" to auto-generate tool masks, then refine</li>
+                    <li><strong>Batch before detail</strong> &mdash; label all phases for a trial first, then do per-frame segmentation</li>
+                    <li><strong>Skip broken frames</strong> &mdash; press <kbd>S</kbd> to skip frames with camera issues</li>
+                    <li><strong>Keyboard over mouse</strong> &mdash; all tools have keybinds. Learn them to go 3&times; faster</li>
+                    <li><strong>Occluded parts</strong> &mdash; if a keypoint/tool part is hidden, set its visibility to Occluded (orange status). Don't guess positions</li>
+                </ul>
+
+                <h3>What Gets Trained</h3>
+                <table class="guide-table">
+                    <tr><th>Data</th><th>Model</th><th>Purpose</th></tr>
+                    <tr><td>Tool masks + keypoints</td><td>Instance segmentation (e.g. YOLO)</td><td>Detect tools in new videos</td></tr>
+                    <tr><td>Peg/post masks + keypoints</td><td>Instance segmentation</td><td>Detect pegs, posts, board</td></tr>
+                    <tr><td>Phase labels (per-frame)</td><td>Temporal phase recognition</td><td>Auto-segment surgical phases</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Annotation View (overlay) -->
+    <div id="batch-view" class="batch-view" style="display: none;">
+        <div class="batch-header">
+            <h3>Batch Frame Annotation</h3>
+            <div class="batch-nav">
+                <button id="batch-first" class="batch-nav-btn" title="First page">|&larr;</button>
+                <button id="batch-prev" class="batch-nav-btn">&larr; Prev</button>
+                <select id="batch-page-select" class="batch-page-select" title="Jump to page"></select>
+                <span id="batch-page-info" class="batch-page-info-text"></span>
+                <button id="batch-next" class="batch-nav-btn">Next &rarr;</button>
+                <button id="batch-last" class="batch-nav-btn" title="Last page">&rarr;|</button>
+                <input id="batch-goto-frame" class="batch-goto-frame" type="number" min="0" placeholder="Go to frame #" title="Jump to frame">
+            </div>
+            <button id="batch-next-trial" class="batch-nav-btn" title="Next trial">&raquo; Next Trial</button>
+            <button id="batch-close" class="batch-close-btn">&times; Close</button>
+        </div>
+        <div class="batch-actions">
+            <span id="batch-count" class="batch-count">0 selected</span>
+            <button id="batch-t1-out" class="batch-action-btn t1-out">T1 Out</button>
+            <button id="batch-t2-out" class="batch-action-btn t2-out">T2 Out</button>
+            <button id="batch-both-out" class="batch-action-btn both-out">Both Out</button>
+            <span class="batch-separator"></span>
+            <button id="batch-broken" class="batch-action-btn broken-btn">Broken</button>
+            <button id="batch-exclude" class="batch-action-btn exclude-btn">Exclude</button>
+            <button id="batch-clear-selection" class="batch-action-btn clear-btn">Clear</button>
+            <button id="batch-refresh" class="batch-action-btn refresh-btn">Refresh</button>
+            <button id="batch-preview" class="batch-action-btn" title="Open selected frame full-res in new tab">Preview</button>
+            <span class="batch-separator"></span>
+            <button class="phase-btn batch-phase-assign" data-phase="idle" style="background:#6b7280;padding:2px 6px;font-size:0.7rem;">Z Idle</button>
+            <button class="phase-btn batch-phase-assign" data-phase="reach" style="background:#3b82f6;padding:2px 6px;font-size:0.7rem;">X Reach</button>
+            <button class="phase-btn batch-phase-assign" data-phase="nudge" style="background:#f97316;padding:2px 6px;font-size:0.7rem;">C Nudge</button>
+            <button class="phase-btn batch-phase-assign" data-phase="grasp" style="background:#f59e0b;color:#000;padding:2px 6px;font-size:0.7rem;">D Grasp</button>
+            <button class="phase-btn batch-phase-assign" data-phase="transfer" style="background:#8b5cf6;padding:2px 6px;font-size:0.7rem;">R Transfer</button>
+            <button class="phase-btn batch-phase-assign" data-phase="place" style="background:#10b981;padding:2px 6px;font-size:0.7rem;">T Place</button>
+            <button class="phase-btn batch-phase-assign" data-phase="dropped" style="background:#ef4444;padding:2px 6px;font-size:0.7rem;">G Dropped</button>
+            <span style="margin-left:4px;font-size:0.7rem;">Cycle: <input type="number" id="batch-phase-cycle" min="0" max="20" value="0" style="width:40px"></span>
+            <span class="batch-separator"></span>
+            <button id="batch-copy-pegs" class="batch-action-btn" style="background:#f97316;border-color:#f97316;color:#fff;font-weight:bold;">Copy Pegs</button>
+            <label class="batch-toggle">
+                <input type="checkbox" id="batch-show-all" checked>
+                <span>Show all frames</span>
+            </label>
+            <label class="batch-density">
+                Per page: <input type="number" id="batch-page-size" min="6" max="500" value="55" style="width:55px">
+            </label>
+        </div>
+
+        <!-- Phase buttons are now inline in batch-actions bar above -->
+        <div class="batch-grid" id="batch-grid"></div>
+        <div class="batch-legend">
+            <span class="legend-item legend-selected">&#9632; Selected</span>
+            <span class="legend-item legend-t1">&#9632; T1 Out</span>
+            <span class="legend-item legend-t2">&#9632; T2 Out</span>
+            <span class="legend-item legend-both">&#9632; Both Out</span>
+            <span class="legend-item legend-complete">&#9632; Complete</span>
+            <span class="legend-item legend-broken">&#9632; Broken</span>
+            <span class="legend-item legend-skipped">&#9632; Skipped</span>
+            <span class="legend-item legend-exclude">&#9632; Exclude</span>
+            <span class="legend-item legend-phase">&#9632; Phase Labeled</span>
+        </div>
+        <div class="batch-instructions">
+            <kbd>Click</kbd> Select &nbsp;
+            <kbd>Ctrl+Click</kbd> Toggle &nbsp;
+            <kbd>Shift+Click</kbd> Range &nbsp;
+            <kbd>Drag</kbd> Box select &nbsp;
+            <kbd>1</kbd> T1 Out &nbsp;
+            <kbd>2</kbd> T2 Out &nbsp;
+            <kbd>A</kbd> Select all &nbsp;
+            <kbd>D</kbd> Deselect &nbsp;
+            <kbd>B</kbd> Broken &nbsp;
+            <kbd>X</kbd> Exclude &nbsp;
+            <kbd>R</kbd> Refresh &nbsp;
+            <kbd>Z/X/C/D/R/T/G</kbd> Phase &nbsp;
+            <kbd>G</kbd> Go to frame &nbsp;
+            <kbd>Home</kbd> First page &nbsp;
+            <kbd>End</kbd> Last page &nbsp;
+            <kbd>N</kbd> Next trial &nbsp;
+            <kbd>Esc</kbd> Close
+        </div>
+    </div>
+
+    <!-- Video Annotation Mode (overlay) -->
+    <div id="video-view" class="video-view" style="display: none;">
+        <div class="video-header">
+            <h3>Video Phase Annotation</h3>
+            <span id="video-trial-name" class="video-trial-name"></span>
+            <button id="video-prev-trial" class="batch-nav-btn">&laquo; Prev Trial</button>
+            <button id="video-next-trial" class="batch-nav-btn">Next Trial &raquo;</button>
+            <button id="video-close" class="batch-close-btn">&times; Close</button>
+        </div>
+
+        <div class="video-body">
+            <!-- Frame viewer -->
+            <div class="video-frame-container">
+                <img id="video-frame-img" src="" alt="Frame">
+            </div>
+
+            <!-- Info bar -->
+            <div class="video-info-bar">
+                <span>Frame: <strong id="video-frame-num">0</strong> / <span id="video-frame-total">0</span></span>
+                <span>Phase: <strong id="video-current-phase">—</strong></span>
+                <span id="video-mark-indicator" class="video-mark-indicator" style="display:none;">Mark Start: <strong id="video-mark-frame">0</strong></span>
+                <span>Speed: <strong id="video-speed-display">1x</strong></span>
+                <span id="video-coverage">Coverage: <strong>0%</strong></span>
+            </div>
+
+            <!-- Cache progress bar -->
+            <div id="video-cache-bar" class="video-cache-bar" style="display:none;">
+                <div class="video-cache-progress" id="video-cache-progress"></div>
+                <span class="video-cache-text" id="video-cache-text">Loading frames...</span>
+            </div>
+
+            <!-- Transport controls -->
+            <div class="video-controls">
+                <button id="video-step-back-10" class="video-ctrl-btn" title="Back 10 (Shift+Left)">&#x23EA;</button>
+                <button id="video-step-back" class="video-ctrl-btn" title="Back 1 (Left)">&#x25C0;</button>
+                <button id="video-play-pause" class="video-ctrl-btn video-play-btn" title="Play/Pause (Space)">&#x25B6;</button>
+                <button id="video-step-fwd" class="video-ctrl-btn" title="Forward 1 (Right)">&#x25B6;</button>
+                <button id="video-step-fwd-10" class="video-ctrl-btn" title="Forward 10 (Shift+Right)">&#x23E9;</button>
+                <input type="range" id="video-slider" class="video-slider" min="0" max="0" value="0">
+                <select id="video-speed-select" class="video-speed-select">
+                    <option value="0.25">0.25x</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="2">2x</option>
+                    <option value="4">4x</option>
+                    <option value="8">8x</option>
+                </select>
+            </div>
+
+            <!-- Timeline -->
+            <div class="video-timeline-section">
+                <div class="video-timeline-container" id="video-timeline-container">
+                    <canvas id="video-timeline-canvas"></canvas>
+                </div>
+                <div class="video-timeline-legend">
+                    <span class="vt-legend" style="--c:#6b7280;">Idle</span>
+                    <span class="vt-legend" style="--c:#3b82f6;">Reach</span>
+                    <span class="vt-legend" style="--c:#f59e0b;">Grasp</span>
+                    <span class="vt-legend" style="--c:#8b5cf6;">Transfer</span>
+                    <span class="vt-legend" style="--c:#10b981;">Place</span>
+                    <span class="vt-legend" style="--c:#ef4444;">Dropped</span>
+                </div>
+            </div>
+
+            <!-- Phase + clip controls -->
+            <div class="video-actions">
+                <div class="video-tool-btns" title="Apply phase keys to which tool">
+                    <span class="video-tool-label">Apply:</span>
+                    <button class="video-tool-btn active" data-tool="both" title="Phase keys mark both tools (default; key: 3)"><span class="key-hint">3</span> BOTH</button>
+                    <button class="video-tool-btn" data-tool="1" title="Phase keys affect only Tool 1 (key: 1)"><span class="key-hint">1</span> T1</button>
+                    <button class="video-tool-btn" data-tool="2" title="Phase keys affect only Tool 2 (key: 2)"><span class="key-hint">2</span> T2</button>
+                </div>
+                <div class="video-phase-btns">
+                    <button class="video-phase-btn" data-phase="idle" style="background:#6b7280;">Z Idle</button>
+                    <button class="video-phase-btn" data-phase="reach" style="background:#3b82f6;">X Reach</button>
+                    <button class="video-phase-btn" data-phase="nudge" style="background:#f97316;">C Nudge</button>
+                    <button class="video-phase-btn" data-phase="grasp" style="background:#f59e0b;color:#000;">D Grasp</button>
+                    <button class="video-phase-btn" data-phase="transfer" style="background:#8b5cf6;">R Transfer</button>
+                    <button class="video-phase-btn" data-phase="place" style="background:#10b981;">T Place</button>
+                    <button class="video-phase-btn" data-phase="dropped" style="background:#ef4444;">G Dropped</button>
+                </div>
+                <div class="video-clip-btns">
+                    <button id="video-mark-start" class="video-action-btn">M Mark Start</button>
+                    <button id="video-mark-end" class="video-action-btn">N Mark End</button>
+                    <label id="video-auto-start-toggle" class="video-toggle-label" title="Auto-place start at next frame after marking end">
+                        <input type="checkbox" id="video-auto-start" checked> Auto-start
+                    </label>
+                    <label id="video-auto-save-toggle" class="video-toggle-label" title="Auto-save annotations after every edit (uncheck to require manual Save)">
+                        <input type="checkbox" id="video-auto-save" checked> Auto-save
+                    </label>
+                    <button id="video-delete-clip" class="video-action-btn video-danger-btn">&#x232B; Delete</button>
+                    <button id="video-prev-clip" class="video-action-btn">[ Prev Clip</button>
+                    <button id="video-next-clip" class="video-action-btn">] Next Clip</button>
+                    <button id="video-jump-unmarked" class="video-action-btn">J Unmarked</button>
+                    <button id="video-save" class="video-action-btn video-save-btn">S Save</button>
+                    <span class="video-cycle-controls" style="margin-left:8px;font-size:0.75rem;color:#888;">
+                        Cycle: <button id="video-cycle-dec" class="video-cycle-btn" title="Decrease cycle">&minus;</button>
+                        <input type="number" id="video-cycle" min="0" max="20" value="0" style="width:40px;background:#333;color:#fff;border:1px solid #555;border-radius:3px;padding:2px;text-align:center;">
+                        <button id="video-cycle-inc" class="video-cycle-btn" title="Increase cycle">&plus;</button>
+                    </span>
+                    <button id="video-show-annotations" class="video-action-btn" title="Show raw annotations">&#128196; Raw</button>
+                </div>
+            </div>
+
+            <!-- Raw annotation panel (bottom-right overlay) -->
+            <div id="video-annotation-panel" class="video-annotation-panel" style="display:none;">
+                <div class="video-annotation-panel-header">
+                    <span>Raw Annotations</span>
+                    <button id="video-annotation-panel-close" class="video-annotation-panel-close">&times;</button>
+                </div>
+                <textarea id="video-annotation-text" class="video-annotation-text" placeholder="Paste annotation JSON here, then click Apply"></textarea>
+                <div style="display:flex;gap:4px;margin-top:4px;">
+                    <button id="video-annotation-copy" class="video-action-btn" style="flex:1;">Copy</button>
+                    <button id="video-annotation-apply" class="video-action-btn" style="flex:1;background:#e94560;">Apply</button>
+                    <button id="video-annotation-restore" class="video-action-btn" style="flex:1;">Restore</button>
+                </div>
+            </div>
+
+            <!-- Keyboard hints -->
+            <div class="video-hints">
+                <kbd>Space</kbd> Play/Pause &nbsp;
+                <kbd>&larr;/&rarr;</kbd> Step &plusmn;1 &nbsp;
+                <kbd>Shift+&larr;/&rarr;</kbd> Step &plusmn;10 &nbsp;
+                <kbd>M</kbd> Mark Start &nbsp;
+                <kbd>N</kbd> Mark End &nbsp;
+                <kbd>Z/X/C/D/R/T/G</kbd> Phase &nbsp;
+                <kbd>[/]</kbd> Prev/Next Clip &nbsp;
+                <kbd>J</kbd> Jump Unmarked &nbsp;
+                <kbd>Backspace</kbd> Delete Clip &nbsp;
+                <kbd>S</kbd> Save &nbsp;
+                <kbd>Esc</kbd> Close
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase Mapping Guide Popup -->
+    <div class="phase-guide-overlay" id="phase-guide-overlay" style="display: none;">
+        <div class="phase-guide-popup">
+            <h3>Phase Keybind &amp; Mouse Mapping Guide</h3>
+            <p>Configure your Corsair iCUE to map mouse buttons to these keys:</p>
+            <table class="phase-guide-table">
+                <thead>
+                    <tr><th>Mouse Button</th><th>iCUE Key</th><th>Phase</th><th>Freq</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Side Button 1 (easy)</td><td><kbd>X</kbd></td><td style="color:#3b82f6;">Reach</td><td>~35%</td></tr>
+                    <tr><td>Side Button 2 (easy)</td><td><kbd>G</kbd></td><td style="color:#ef4444;">Dropped</td><td>Rare</td></tr>
+                    <tr><td>Button 3 (medium)</td><td><kbd>D</kbd></td><td style="color:#f59e0b;">Grasp</td><td>~12%</td></tr>
+                    <tr><td>Button 4 (medium)</td><td><kbd>R</kbd></td><td style="color:#8b5cf6;">Transfer</td><td>~15%</td></tr>
+                    <tr><td>Button 5 (medium)</td><td><kbd>T</kbd></td><td style="color:#10b981;">Place</td><td>~13%</td></tr>
+                    <tr><td>Button 6 (harder)</td><td><kbd>Z</kbd></td><td style="color:#6b7280;">Idle</td><td>Rare</td></tr>
+                    <tr><td>Button 7 (harder)</td><td><kbd>H</kbd></td><td>Next Cycle</td><td>Per cycle</td></tr>
+                </tbody>
+            </table>
+            <p class="phase-guide-hint"><kbd>M</kbd> = Toggle Tools/Pegs mode &nbsp; <kbd>H</kbd> = Increment cycle</p>
+            <button id="phase-guide-close" class="phase-guide-close-btn">Close</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/main.js?v=8"></script>
+</body>
+</html>

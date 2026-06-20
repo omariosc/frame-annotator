@@ -1,2 +1,12 @@
+# Core dependencies for BOTH tools (offline / minimal install — no GPU or torch).
 flask>=2.0
 pyyaml>=6.0
+numpy>=1.21
+Pillow>=9.0
+
+# Optional AI-assist extras for surgical-annotator (SAM masking, depth/embedding precompute):
+#   pip install -e ".[ai]"
+# torch>=2.0
+# torchvision
+# opencv-python
+# SAM2 and Depth-Anything-V2 model packages are installed separately (see README).

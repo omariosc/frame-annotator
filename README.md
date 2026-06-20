@@ -1,154 +1,105 @@
-# frame-annotator
+# Surgical Video Annotation Tools
 
-A lightweight, configurable web tool for annotating video frames with classification labels. Built for research workflows — define your own annotation taxonomy via YAML, launch a local web interface, and export structured annotations in JSON and CSV.
+Two complementary, open-source web tools for annotating surgical video, in one repo. Both run locally in the browser, store results as plain files, and need no database or frontend build step.
 
+| Tool | What it labels | Port | Best for |
+|------|----------------|------|----------|
+| **frame-annotator** | Clip-level **classification** on a timeline (config-driven taxonomy) | 5001 | Fast phase / event / safety labelling — e.g. robotic surgical-safety labelling |
+| **surgical-annotator** | **Multi-task geometry**: per-instrument segmentation masks, shaft lines, and keypoints, plus a hierarchical phase / event timeline | 5000 | Detailed training data for detection, pose, and phase models |
+
+`surgical-annotator` is built on the same Flask + timeline foundation as `frame-annotator`; this repo ships both so you can pick the right granularity for the task.
+
+---
+
+## Gallery
+
+### frame-annotator — clip classification
 ![frame-annotator interface](docs/screenshots/overview.png)
 
-## Features
+Used for **robotic surgical-safety labelling** (config: `examples/surgical_safety.yaml`):
 
-- **Config-driven classes** — Define any number of classification labels with colors, keyboard shortcuts, and optional subcategories via YAML or JSON
-- **Clip-based annotation** — Group consecutive frames into clips and assign labels, rather than annotating frame-by-frame
-- **Interactive timeline** — Visual timeline with zoom, pan, drag-to-adjust clip boundaries, and color-coded segments
-- **Keyboard shortcuts** — Navigate frames, assign classes, and manage clips without touching the mouse
-- **Dual export** — Annotations saved as both JSON (clip-level) and CSV (frame-level), with timestamped backups
-- **Zero dependencies beyond Flask** — Runs locally with pip install, no database or frontend build step required
+![Surgical safety annotation config](docs/screenshots/surgical_safety.png)
 
-## Quick Start
+### surgical-annotator — multi-task geometry + phases
+![surgical-annotator interface](docs/screenshots/surgical_annotator_interface.png)
 
-Install from source:
+Batch mode (rapid mass-labelling / corrupt-frame triage):
+
+![surgical-annotator batch mode](docs/screenshots/surgical_annotator_batch.png)
+
+Video mode with phase annotations:
+
+![surgical-annotator video / phase mode](docs/screenshots/surgical_annotator_video_phase.png)
+
+> The three `surgical_annotator_*.png` images above need to be added to `docs/screenshots/` — see [`docs/screenshots/README.md`](docs/screenshots/README.md) for what to capture.
+
+---
+
+## Install (one install, both tools)
 
     git clone https://github.com/omariosc/frame-annotator.git
     cd frame-annotator
     pip install -e .
 
-Then run:
+This installs the **core, offline** stack for *both* tools — no GPU or PyTorch required. Core dependencies: `flask`, `pyyaml`, `numpy`, `Pillow`.
 
-    frame-annotator path/to/your/frames/
+Optional AI-assist extras for `surgical-annotator` (SAM-assisted masking, depth / embedding precompute):
 
-Open http://127.0.0.1:5001 in your browser.
+    pip install -e ".[ai]"
 
-### Try with sample data
+> The `[ai]` extra pulls in `torch`, `torchvision`, and `opencv-python`. The SAM2 and Depth-Anything-V2 model packages/weights are installed separately — see [`surgical_annotator/README.md`](surgical_annotator/README.md).
 
-    frame-annotator sample_data/frames/
+---
 
-### Use a custom config
+## Run either tool
+
+### frame-annotator (clip classification → http://127.0.0.1:5001)
 
     frame-annotator path/to/frames/ --config examples/surgical_safety.yaml
+    # equivalently:
+    python -m frame_annotator path/to/frames/ --config examples/surgical_safety.yaml
 
-![Surgical safety annotation config](docs/screenshots/surgical_safety.png)
+- Define your own taxonomy in YAML — see `examples/` (`surgical_safety.yaml`, `action_recognition.yaml`, `defect_detection.yaml`) and [`frame_annotator/README.md`](frame_annotator/README.md).
+- Try it instantly with the bundled sample frames:
 
-## Configuration
+      frame-annotator sample_data/frames/
 
-Create a YAML file to define your annotation classes:
+### surgical-annotator (multi-task geometry + phases → http://localhost:5000)
 
-    project:
-      name: "My Annotation Task"
-      description: "Optional description shown in the UI"
+    surgical-annotator --data-dir /path/to/data
+    # equivalently:
+    python -m surgical_annotator --data-dir /path/to/data
 
-    images:
-      pattern: "*.png"
+- `--data-dir` should contain any of `6DOF2023/`, `7DOF2024/`, `BAPES2024/`, `outputs/` (missing datasets are skipped; defaults to `./data`).
+- Annotate per-instrument masks, shaft lines, and keypoints, plus phase/event timelines; exports to YOLO and per-frame JSON.
+- AI-assisted masking (SAM) and precompute steps require the `[ai]` extra and model weights.
+- Full docs: [`surgical_annotator/README.md`](surgical_annotator/README.md).
 
-    classes:
-      - id: "0"
-        name: "Safe"
-        color: "#28a745"
-        shortcut: "0"
-        description: "No safety concerns"
+---
 
-      - id: "1"
-        name: "Unsafe"
-        color: "#dc3545"
-        description: "Safety concerns present"
-        subcategories:
-          - id: "a"
-            name: "Improper Posture"
-            shortcut: "a"
-          - id: "b"
-            name: "Hyperextension"
-            shortcut: "b"
+## Which tool do I want?
 
-### Config reference
+- **Classifying** frames/clips into categories (phases, safe/unsafe, actions)? → **frame-annotator**.
+- Drawing **masks / shaft lines / keypoints** per instrument, or building rich multi-task labels? → **surgical-annotator**.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| project.name | No | Display name (default: Frame Annotator) |
-| project.description | No | Shown in the UI header |
-| images.pattern | No | Glob pattern for frames (default: *.png) |
-| classes[].id | Yes | Unique identifier for the class |
-| classes[].name | Yes | Display name |
-| classes[].color | Yes | Hex color code (e.g. #28a745) |
-| classes[].shortcut | No | Single-key keyboard shortcut |
-| classes[].description | No | Tooltip text |
-| classes[].subcategories | No | List of subcategory objects |
-| subcategories[].id | Yes | Single character identifier |
-| subcategories[].name | Yes | Display name |
-| subcategories[].shortcut | No | Single-key keyboard shortcut |
+## Repository layout
 
-See the examples/ directory for complete configs: surgical_safety.yaml (binary with subcategories), action_recognition.yaml (multi-class), and defect_detection.yaml (simple binary).
-
-## CLI Options
-
-    Usage: frame-annotator <image_dir> [options]
-
-    Positional arguments:
-      image_dir              Path to directory containing image frames
-
-    Options:
-      --config, -c FILE      YAML/JSON config file (default: built-in binary classifier)
-      --output, -o DIR       Output directory for annotations (default: <image_dir>/annotations/)
-      --port, -p PORT        Port number (default: 5001)
-      --host HOST            Host to bind (default: 127.0.0.1)
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| Left / Right | Previous / Next frame |
-| Space | Play / Pause |
-| M | Add marker at current frame |
-| Backspace | Delete selected clip |
-| [ / ] | Previous / Next clip |
-| H / K | Jump to clip start / end |
-| J | Jump to first unmarked frame |
-| + / - | Zoom in / out on timeline |
-| R | Reset zoom |
-| S | Save annotations |
-| L | Load annotations |
-| 1, 2, ... | Assign class (from config shortcuts) |
-
-## Output Format
-
-Annotations are saved to <image_dir>/annotations/ (or the --output directory):
-
-**annotations.json** — Clip-level annotations:
-
-    {
-      "clips": [
-        {"start": 0, "end": 50, "class": "0"},
-        {"start": 51, "end": 100, "class": "1b"}
-      ]
-    }
-
-**annotations.csv** — Frame-level expansion:
-
-    frame,filename,clip_id,class
-    0,frame_0000.png,0,0
-    1,frame_0001.png,0,0
-    ...
-    51,frame_0051.png,1,1b
-
-Timestamped backups (e.g. annotations_20250115_143022.json) are created on every save.
+    frame_annotator/        # clip-classification tool (:5001)        — docs: frame_annotator/README.md
+    surgical_annotator/     # multi-task geometry/phase tool (:5000)  — docs: surgical_annotator/README.md
+    examples/               # YAML taxonomies for frame-annotator
+    sample_data/            # sample frames for frame-annotator
+    docs/screenshots/       # README images
+    pyproject.toml          # installs both tools + the `surgical-annotator` / `frame-annotator` commands
 
 ## Citation
 
-If you use frame-annotator in your research, please cite:
+If you use these tools in your research, please cite:
 
     @software{choudhry2025frameannotator,
-      author       = {Choudhry, Omar},
-      title        = {frame-annotator: A Configurable Web Tool for Video Frame Annotation},
-      year         = {2025},
-      url          = {https://github.com/omariosc/frame-annotator},
-      version      = {0.1.0}
+      author = {Choudhry, Omar},
+      title  = {Surgical Video Annotation Tools (frame-annotator and surgical-annotator)},
+      year   = {2025},
+      url    = {https://github.com/omariosc/frame-annotator}
     }
 
 ## License

@@ -4,28 +4,42 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "frame-annotator"
-version = "0.1.0"
-description = "A lightweight, configurable web tool for annotating video frames with classification labels."
+version = "0.2.0"
+description = "Two web-based surgical-video annotation tools in one repo: frame-annotator (clip classification) and surgical-annotator (multi-task geometry, keypoints, phases)."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.8"
 authors = [
     {name = "Omar Choudhry"},
 ]
-keywords = ["annotation", "video", "frames", "labeling", "classification", "research"]
+keywords = ["annotation", "video", "frames", "labeling", "classification", "segmentation", "keypoints", "surgical", "research"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering",
 ]
+# Core deps cover BOTH tools and the offline/minimal install (no GPU/torch needed).
 dependencies = [
     "flask>=2.0",
     "pyyaml>=6.0",
+    "numpy>=1.21",
+    "Pillow>=9.0",
+]
+
+# AI-assist extras for surgical-annotator (SAM masking, depth/embedding precompute).
+# Install with:  pip install -e ".[ai]"
+# Note: SAM2 and Depth-Anything-V2 model packages are installed separately (see README).
+[project.optional-dependencies]
+ai = [
+    "torch>=2.0",
+    "torchvision",
+    "opencv-python",
 ]
 
 [project.scripts]
 frame-annotator = "frame_annotator.__main__:main"
+surgical-annotator = "surgical_annotator.__main__:main"
 
 [project.urls]
 Homepage = "https://github.com/omariosc/frame-annotator"
@@ -33,4 +47,4 @@ Repository = "https://github.com/omariosc/frame-annotator"
 Issues = "https://github.com/omariosc/frame-annotator/issues"
 
 [tool.setuptools.packages.find]
-include = ["frame_annotator*"]
+include = ["frame_annotator*", "surgical_annotator*"]
