@@ -143,12 +143,11 @@ Timestamped backups (e.g. annotations_20250115_143022.json) are created on every
 
 If you use frame-annotator in your research, please cite:
 
-    @software{choudhry2025frameannotator,
-      author       = {Choudhry, Omar},
-      title        = {frame-annotator: A Configurable Web Tool for Video Frame Annotation},
-      year         = {2025},
-      url          = {https://github.com/omariosc/frame-annotator},
-      version      = {0.1.0}
+    @software{choudhry2026surgicalvideoframeannotator,
+      author       = {Choudhry, Omar and Ali, Sharib and Biyani, Chandra Shekhar and Jones, Dominic},
+      title        = {Surgical Video Frame Annotator},
+      year         = {2026},
+      url          = {https://github.com/omariosc/frame-annotator}
     }
 
 ## License

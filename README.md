@@ -107,10 +107,10 @@ Optional AI-assist extras for `surgical-annotator` (SAM-assisted masking, depth 
 
 If you use these tools in your research, please cite:
 
-    @software{choudhry2025frameannotator,
-      author = {Choudhry, Omar},
-      title  = {Surgical Video Annotation Tools (frame-annotator and surgical-annotator)},
-      year   = {2025},
+    @software{choudhry2026surgicalvideoframeannotator,
+      author = {Choudhry, Omar and Ali, Sharib and Biyani, Chandra Shekhar and Jones, Dominic},
+      title  = {Surgical Video Frame Annotator},
+      year   = {2026},
       url    = {https://github.com/omariosc/frame-annotator}
     }
 
