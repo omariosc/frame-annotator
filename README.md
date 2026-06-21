@@ -1,6 +1,14 @@
 # Surgical Video Annotation Tools
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)
+![Built with Flask](https://img.shields.io/badge/Built%20with-Flask-000000.svg?logo=flask&logoColor=white)
+![Runs offline](https://img.shields.io/badge/runs-offline-success.svg)
+![Tools](https://img.shields.io/badge/tools-2-blueviolet.svg)
+
 Two complementary, open-source web tools for annotating surgical video, in one repo. Both run locally in the browser, store results as plain files, and need no database or frontend build step.
+
+> **Why this exists.** The safety of a surgical-AI system is bounded by the quality of the data it learns from — mislabelled, ambiguous, or inconsistently annotated video propagates silently into every downstream model, where it is hard to detect and dangerous to trust. These tools treat annotation as a first-class, reproducible, openly documented process, so that the data underpinning surgical AI can be trusted and audited. `surgical-annotator` underpins our MICCAI 2026 **SafeSurg** abstract, *An Open-Source Annotation Framework for Trustworthy Multi-Task Surgical Video Labelling*.
 
 | Tool | What it labels | Port | Best for |
 |------|----------------|------|----------|
@@ -13,25 +21,29 @@ Two complementary, open-source web tools for annotating surgical video, in one r
 
 ## Gallery
 
-### frame-annotator — clip classification
-![frame-annotator interface](docs/screenshots/overview.png)
-
-Used for **robotic surgical-safety labelling** (config: `examples/surgical_safety.yaml`):
-
-![Surgical safety annotation config](docs/screenshots/surgical_safety.png)
-
 ### surgical-annotator — multi-task geometry + phases
+
 ![surgical-annotator interface](docs/screenshots/surgical_annotator_interface.png)
 
-Batch mode (rapid mass-labelling / corrupt-frame triage):
+**Figure 1 — The annotation interface.** A single frame labelled with two-instrument segmentation masks (Tool 1 blue, Tool 2 green), top and bottom shaft lines with an auto-computed midline, and four end-effector keypoints per tool. The right panel holds the per-component visible / occluded / out-of-scene controls, the SAM assistance panel, and a live JSON view; the left panel holds trial selection, the progress bar, and the status checklist.
 
 ![surgical-annotator batch mode](docs/screenshots/surgical_annotator_batch.png)
 
-Video mode with phase annotations:
+**Figure 2 — Batch annotation mode.** A paginated thumbnail grid for rapid mass-labelling: frames are multi-selected (click, shift-range, or select-all) and flagged in bulk as tool-absent/negative, broken, or excluded, with colour-coded status borders, enabling fast triage of hundreds of frames and isolation of corrupt frames before they enter training or evaluation.
 
 ![surgical-annotator video / phase mode](docs/screenshots/surgical_annotator_video_phase.png)
 
-> The three `surgical_annotator_*.png` images above need to be added to `docs/screenshots/` — see [`docs/screenshots/README.md`](docs/screenshots/README.md) for what to capture.
+**Figure 3 — Video mode with phase annotations.** A timeline view for temporal labelling, where frame ranges are assigned hierarchical phase and event labels (e.g., reach, grasp, transfer) along a scrubable video timeline, with copy/apply/restore and batched saving, producing the temporal labels that complement the per-frame geometry.
+
+### frame-annotator — clip classification
+
+![Surgical safety annotation config](docs/screenshots/surgical_safety.png)
+
+**Figure 4 — The predecessor tool (frame-annotator).** The original config-driven, clip-based classification tool used for robotic surgical-safety labelling, on which the present framework is built; annotators assign taxonomy labels to frame ranges along a timeline and export clip- and frame-level annotations (config: `examples/surgical_safety.yaml`).
+
+![frame-annotator interface](docs/screenshots/overview.png)
+
+The general clip-classification interface — define any taxonomy in YAML (see `examples/`).
 
 ---
 
